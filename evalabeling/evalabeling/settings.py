@@ -40,8 +40,8 @@ INSTALLED_APPS = [
     "django_extensions",
     "django_filters",
     "rest_framework",
-    "sync_storage",
-    "ml_model",
+    "sync_storage.apps.SyncStorageConfig",
+    "ml_model.apps.MlModelConfig",
 ]
 
 MIDDLEWARE = [

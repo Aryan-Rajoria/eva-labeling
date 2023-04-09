@@ -3,11 +3,11 @@ import json
 import logging
 import os
 import random
+
 import nest_asyncio
 from eva.server.db_api import connect
-from label_studio_tools.core.utils.io import get_data_dir
-
 from evalabeling.model import EvaLabelingBase
+from label_studio_tools.core.utils.io import get_data_dir
 
 logger = logging.getLogger(__name__)
 

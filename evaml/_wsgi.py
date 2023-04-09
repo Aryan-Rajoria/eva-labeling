@@ -1,5 +1,5 @@
-import json
 import argparse
+import json
 import logging
 import logging.config
 import os
@@ -25,7 +25,6 @@ logging.config.dictConfig(
 )
 
 from cluster_images import EVAModel
-
 from label_studio_ml.api import init_app
 
 _DEFAULT_CONFIG_PATH = os.path.join(os.path.dirname(__file__), "config.json")

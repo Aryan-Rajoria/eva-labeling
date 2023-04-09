@@ -18,16 +18,12 @@ logger = logging.getLogger(__name__)
 
 parser = argparse.ArgumentParser()
 
-parser.add_argument("-eu", "--evaurl", default="127.0.0.1",
-                    help="EVA server URL")
+parser.add_argument("-eu", "--evaurl", default="127.0.0.1", help="EVA server URL")
 parser.add_argument(
-    "-ep", "--evaport", default=5432,
-    help="EVA server port number", type=int
+    "-ep", "--evaport", default=5432, help="EVA server port number", type=int
 )
-parser.add_argument("-k", "--apikey",
-                    help="Label Studio API Key")
-parser.add_argument("-ls", "--lsurl",
-                    help="Label Studio Server Location IP + Port")
+parser.add_argument("-k", "--apikey", help="Label Studio API Key")
+parser.add_argument("-ls", "--lsurl", help="Label Studio Server Location IP + Port")
 
 args, subargs = parser.parse_known_args()
 
@@ -46,6 +42,7 @@ def json_load(file, int_keys=False):
 
 image_for_similarity = None
 
+
 async def connect_eva_cursor(host, port, query):
     try:
         reader, writer = None, None
@@ -56,11 +53,12 @@ async def connect_eva_cursor(host, port, query):
         await cursor.execute_async(query)
         response = await cursor.fetch_all_async()
         return response
-    
+
     except Exception as e:
         logger.error("Error.", exc_info=e)
         if writer is not None:
             writer.close()
+
 
 async def eva_cursor(query):
     try:
@@ -69,6 +67,7 @@ async def eva_cursor(query):
         logger.critical(e)
         raise e
     return response
+
 
 class EVAModel(LabelStudioMLBase):
     """
@@ -156,7 +155,7 @@ class EVAModel(LabelStudioMLBase):
         """
         feat = self.execute_eva_query(query=feat_query)
         if int(feat.status) == -1:
-            # TODO: raise error
+            raise RuntimeError("Feature Extractor was not created")
             print("Create FeatureExtractor")
         return feat.batch.frames
 

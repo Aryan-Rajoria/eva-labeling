@@ -7,23 +7,20 @@ import os
 import random
 import eva
 import requests
-from eva.server.db_api import connect
+from eva.server.db_api import EVAConnection
 from label_studio_tools.core.utils.io import get_data_dir
 
-from evalabeling.model import EvaLabelingBase
+from label_studio_ml.model import LabelStudioMLBase
 
 logger = logging.getLogger(__name__)
 
 # Import Variables from the terminal
 
-
 parser = argparse.ArgumentParser()
 
-parser.add_argument("-eu", "--evaurl", default="127.0.0.1", 
-                    help="EVA server URL")
+parser.add_argument("-eu", "--evaurl", default="127.0.0.1", help="EVA server URL")
 parser.add_argument(
-    "-ep", "--evaport", default=5432, 
-    help="EVA server port number", type=int
+    "-ep", "--evaport", default=5432, help="EVA server port number", type=int
 )
 parser.add_argument("-k", "--apikey", help="Label Studio API Key")
 parser.add_argument("-ls", "--lsurl", help="Label Studio Server Location IP + Port")
@@ -46,9 +43,36 @@ def json_load(file, int_keys=False):
 image_for_similarity = None
 
 
-class EVAModel(EvaLabelingBase):
+async def connect_eva_cursor(host, port, query):
+    try:
+        reader, writer = None, None
+        reader, writer = await asyncio.open_connection(host, port)
+        connection = EVAConnection(reader, writer)
+        cursor = connection.cursor()
+
+        await cursor.execute_async(query)
+        response = await cursor.fetch_all_async()
+        return response
+
+    except Exception as e:
+        logger.error("Error.", exc_info=e)
+        if writer is not None:
+            writer.close()
+
+
+async def eva_cursor(query):
+    try:
+        response = await connect_eva_cursor(args.evaurl, args.evaport, query)
+    except Exception as e:
+        logger.critical(e)
+        raise e
+    return response
+
+
+class EVAModel(LabelStudioMLBase):
     """
-    EVA connection using Label Studio ML backend server. This will allow you to run EVA queries on Label Studio.
+    EVA connection using Label Studio ML backend server.
+    This will allow you to run EVA queries on Label Studio.
     """
 
     EVA_CURSOR = None
@@ -92,12 +116,8 @@ class EVAModel(EvaLabelingBase):
         self.create_similarity_table()
 
     def execute_eva_query(self, query):
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        EVA_CURSOR = connect(host=args.evaurl, port=args.evaport).cursor()
-
-        EVA_CURSOR.execute(query)
-        res = EVA_CURSOR.fetch_all()
+        res = asyncio.run(eva_cursor(query))
+        print(res)
         return res
 
     def create_similarity_table(self):
@@ -135,7 +155,7 @@ class EVAModel(EvaLabelingBase):
         """
         feat = self.execute_eva_query(query=feat_query)
         if int(feat.status) == -1:
-            # TODO: raise error
+            raise RuntimeError("Feature Extractor was not created")
             print("Create FeatureExtractor")
         return feat.batch.frames
 
@@ -182,7 +202,7 @@ class EVAModel(EvaLabelingBase):
                 if task_id in list_of_similar_images:
                     output.append(
                         {
-                            "value": {"text": [f"TOP5"]},
+                            "value": {"text": ["TOP5"]},
                             "id": str(id_gen),
                             "from_name": "cluster",
                             "to_name": "image",
@@ -193,7 +213,7 @@ class EVAModel(EvaLabelingBase):
                 else:
                     output.append(
                         {
-                            "value": {"text": [f"Not"]},
+                            "value": {"text": ["Not"]},
                             "id": str(id_gen),
                             "from_name": "cluster",
                             "to_name": "image",
@@ -236,7 +256,7 @@ class EVAModel(EvaLabelingBase):
 
     def remove_all_predictions(self, project_id):
         url = f"{MAIN_URL}/api/predictions/"
-        headers = {"Authorization": f"Token {self.access_token}"}
+        headers = {"Authorization": f"Token {API_KEY}"}
         r = requests.get(url=url, headers=headers, data={})
         r_obj = json.loads(r.text)
         if not type(r_obj) == dict:

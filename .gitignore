@@ -5,6 +5,7 @@ load_env.bash
 image.txt
 ./evaml/*.json
 *.pt
+*.json
 
 
 # Byte-compiled / optimized / DLL files
